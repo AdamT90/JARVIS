@@ -4,8 +4,9 @@ import { ref, watch, nextTick, onMounted, computed } from "vue";
 import { RouterLink } from "vue-router";
 import { hugginggpt } from "@/api/hugginggpt";
 import { chatgpt } from "@/api/chatgpt";
-import Loding from "@/components/Loding.vue";
+import Loading from "@/components/Loading.vue";
 import promptCollection from "@/prompt";
+import BASE_URL from "@/config";
 
 let dev = ref(false);
 let isChatgpt = ref(false);
@@ -13,13 +14,6 @@ let isTalking = ref(false);
 let isConfig = ref<boolean>(true);
 let title = ref<string>();
 let mode = ref<string>("default");
-
-
-if(isChatgpt.value){
-  title.value = "ChatGPT"
-}else{
-  title.value = "HuggingGPT"
-}
 
 title.value = isChatgpt.value? "ChatGPT": "HuggingGPT";
 
@@ -51,34 +45,34 @@ async function sendChatMessage() {
 
   clearMessageContent();
   var clean_messages: CleanChatMessage[] = []
-  for(let message of messageList.value){
-    if(message.first && message.role != "system"){
+  for (let message of messageList.value) {
+    if (message.first && message.role != "system") {
       clean_messages.push({role: message.role, content: message.content})
     }
   }
   messageList.value.push(
     { role: "assistant", content: "", type: "text", first: true},
   )
-  if(isChatgpt.value){
-    var { status, data, message } = await chatgpt(clean_messages, loadConfig(), dev.value);
-  }else{
-    var { status, data, message: string } = await hugginggpt(clean_messages, loadConfig(), dev.value);
+  if (isChatgpt.value) {
+    var { status, data } = await chatgpt(clean_messages, loadConfig(), dev.value);
+  } else {
+    var { status, data } = await hugginggpt(clean_messages, loadConfig(), dev.value);
   }
-  
+
   messageList.value.pop()
-  if(status === "success" ){
-    if(data){
+  if (status === "success" ) {
+    if (data) {
       messageList.value.push(
         { role: "assistant", content: data, type: "text", first: true }
       );
-    }else{
+    } else {
       messageList.value.push(
-        { role: "assistant", content: "Something seems wrong", type: "text", first: true }
+        { role: "assistant", content: "empty content", type: "text", first: true }
       );
     }
-  }else{
+  } else {
     messageList.value.push(
-      { role: "system", content: "Something seems seems wrong", type: "text", first: true }
+      { role: "system", content: data, type: "text", first: true }
     );
   }
   isTalking.value = false;
@@ -89,7 +83,7 @@ const messageListMM = computed(() => {
   var messageListMM: ChatMessage[] = []
   for (var i = 0; i < messageList.value.length; i++) {
     var message = messageList.value[i]
-    if(message.type != "text"){
+    if (message.type != "text") {
       messageListMM.push(message)
       continue
     }
@@ -109,8 +103,8 @@ const messageListMM = computed(() => {
         start += seq_added_accum
         end += seq_added_accum
         const replace_str = `<span class="inline-flex items-baseline">
-          <a class="inline-flex text-sky-800 font-bold items-baseline" target="_blank" href="${image_urls[j].startsWith("http")?image_urls[j]:"http://localhost:8004"+image_urls[j]}">
-              <img src="${image_urls[j].startsWith("http")?image_urls[j]:"http://localhost:8004"+image_urls[j]}" alt="" class="inline-flex self-center w-5 h-5 rounded-full mx-1" />
+          <a class="inline-flex text-sky-800 font-bold items-baseline" target="_blank" href="${image_urls[j].startsWith("http")?image_urls[j]:""+image_urls[j]}">
+              <img src="${image_urls[j].startsWith("http")?image_urls[j]:BASE_URL+image_urls[j]}" alt="" class="inline-flex self-center w-5 h-5 rounded-full mx-1" />
               <span class="mx-1">[Image]</span>
           </a>
           </span>`
@@ -119,7 +113,7 @@ const messageListMM = computed(() => {
         content = content.slice(0, start) + replace_str + content.slice(end)
         
         if(!image_urls[j].startsWith("http")){
-          image_urls[j] = "http://localhost:8004" + image_urls[j]
+          image_urls[j] = BASE_URL + image_urls[j]
         }
       }
     }
@@ -137,7 +131,7 @@ const messageListMM = computed(() => {
         start += seq_added_accum
         end += seq_added_accum
         const replace_str = `<span class="inline-flex items-baseline">
-            <a class="text-sky-800 inline-flex font-bold items-baseline" target="_blank" href="${audio_urls[j].startsWith("http")?audio_urls[j]:"http://localhost:8004"+audio_urls[j]}">
+            <a class="text-sky-800 inline-flex font-bold items-baseline" target="_blank" href="${audio_urls[j].startsWith("http")?audio_urls[j]:BASE_URL+audio_urls[j]}">
               <img class="inline-flex self-center w-5 h-5 rounded-full mx-1" src="/audio.svg"/>
               <span class="mx-1">[Audio]</span>
             </a>
@@ -147,7 +141,7 @@ const messageListMM = computed(() => {
         content = content.slice(0, start) + replace_str + content.slice(end)
         
         if(!audio_urls[j].startsWith("http")){
-          audio_urls[j] = "http://localhost:8004" + audio_urls[j]
+          audio_urls[j] = BASE_URL + audio_urls[j]
         }
       }
     }
@@ -165,7 +159,7 @@ const messageListMM = computed(() => {
         start += seq_added_accum
         end += seq_added_accum
         const replace_str = `<span class="inline-flex items-baseline">
-            <a class="text-sky-800 inline-flex font-bold items-baseline" target="_blank" href="${video_urls[j].startsWith("http")?video_urls[j]:"http://localhost:8004"+video_urls[j]}">
+            <a class="text-sky-800 inline-flex font-bold items-baseline" target="_blank" href="${video_urls[j].startsWith("http")?video_urls[j]:BASE_URL+video_urls[j]}">
               <img class="inline-flex self-center w-5 h-5 rounded-full mx-1" src="/video.svg"/>
               <span class="mx-1">[video]</span>
             </a>
@@ -175,7 +169,7 @@ const messageListMM = computed(() => {
         content = content.slice(0, start) + replace_str + content.slice(end)
         
         if(!video_urls[j].startsWith("http")){
-          video_urls[j] = "http://localhost:8004" + video_urls[j]
+          video_urls[j] = BASE_URL + video_urls[j]
         }
       }
     }
@@ -195,12 +189,12 @@ const messageListMM = computed(() => {
         messageListMM.push({role: role, content: image_urls[j], type: "image", first: false})
       }
     }
-    if (audio_urls){
+    if (audio_urls) {
       for (var j = 0; j < audio_urls.length; j++) {
         messageListMM.push({role: role, content: audio_urls[j], type: "audio", first: false})
       }
     }
-    if (video_urls){
+    if (video_urls) {
       for (var j = 0; j < video_urls.length; j++) {
         messageListMM.push({role: role, content: video_urls[j], type: "video", first: false})
       }
@@ -239,10 +233,10 @@ const clickConfig = () => {
 
 const switchChatGPT = () => {
   isChatgpt.value = !isChatgpt.value;
-  if(isChatgpt.value){
+  if (isChatgpt.value) {
     title.value = "ChatGPT"
     roleAlias.value = roleAliasChatGPT
-  }else{
+  } else {
     title.value = "HuggingGPT"
     roleAlias.value = roleAliasChatHuggingGPT
   }
@@ -252,7 +246,7 @@ function saveConfig(apiKey: string) {
   if (apiKey.slice(0, 3) !== "sk-" || apiKey.length !== 51) {
     alert("Illegal API Key");
     return false;
-  }-
+  }
   localStorage.setItem("apiKey", apiKey);
   return true;
 }
@@ -327,7 +321,7 @@ watch(messageListMM, () => nextTick(() => {
         </div>
         
         <div class="text-sm cursor-pointer w-1/4 flex flex-row justify-end" @click="dev || clickConfig()" @dblclick="switchChatGPT()">
-            <img src="@/assets/setting.svg" class="w-7 block"/>
+            <img src="@/assets/setting.svg" class="w-7 block" title="click to switch to configuration OpenAI key or double click to switch HuggingGPT and ChatGPT"/>
         </div>
       </div>
     </div>
@@ -361,7 +355,7 @@ watch(messageListMM, () => nextTick(() => {
             </code>
           </pre>
           
-          <Loding class="mt-2" v-else />
+          <Loading class="mt-2" v-else />
         </div>
 
       </div>
